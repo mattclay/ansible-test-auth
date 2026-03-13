@@ -3,11 +3,6 @@ description: Enable ansible-test authentication with the Ansible Core CI service
 runs:
   using: composite
   steps:
-    - name: Generate a unique job code
-      id: job-code
-      run: python -c 'import secrets; print(f"job-code={secrets.token_hex(4)}")' >> "$GITHUB_OUTPUT"
-      shell: bash
-
     - name: Generate an SSH key
       run: mkdir -p ~/.ansible/test && ssh-keygen -q -f ~/.ansible/test/ansible-core-ci -N ''
       shell: bash
@@ -16,10 +11,12 @@ runs:
       id: publish-ssh-key
       uses: actions/upload-artifact@v7
       with:
-        name: Public Key for ansible-test (${{ steps.job-code.outputs.job-code }})
+        name: Public Key for ansible-test (${{ job.check_run_id }})
         path: ~/.ansible/test/ansible-core-ci.pub
         retention-days: 1
 
-    - name: Record the SSH public key artifact ID
-      run: echo "ANSIBLE_TEST_GHA_SSH_KEY_ARTIFACT_ID=${{ steps.publish-ssh-key.outputs.artifact-id }}" >> $GITHUB_ENV
+    - name: Record environment variables
+      run: |
+        echo "ANSIBLE_TEST_GHA_SSH_KEY_ARTIFACT_ID=${{ steps.publish-ssh-key.outputs.artifact-id }}" >> $GITHUB_ENV
+        echo "ANSIBLE_TEST_GHA_JOB_ID=${{ job.check_run_id }}" >> $GITHUB_ENV
       shell: bash
